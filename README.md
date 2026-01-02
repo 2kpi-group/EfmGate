@@ -1,2 +1,10 @@
-# EfmGate
-Nous avons développé un modèle LSTM intégrant les signatures EFM proposées par M. Eduardo. Ces signatures sont incorporées directement au sein des portes d’oubli (forget gates) du LSTM, afin d’enrichir la dynamique de mémoire du réseau et de mieux capturer la structure temporelle fine des données.
+[![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+
+## License
+
+This project is licensed under the Creative Commons
+Attribution-NonCommercial-ShareAlike 4.0 International License (CC BY-NC-SA 4.0).
+
+© 2026 Aimé Nlend Ebrotié Alphonse
+
+
