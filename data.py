@@ -18,7 +18,7 @@ jax_key = jax.random.PRNGKey(SEED)
 def generate_ou_signal(T=500, seed=0, kappa=15, theta=0., nu=1.5):
     rng = np.random.default_rng(seed)
     
-    dt = 1.0 / T          # 🔴 CORRECTION CLÉ
+    dt = 1.0 / T          
     x = np.zeros(T)
     x[0] = 0.0
 
