@@ -1,6 +1,6 @@
 
 # Imports & Seeds
-from data import generate_ou_signal, split_data, to_jax, r2_mean_std
+from data import generate_ou_signal, split_data, r2_score
 import numpy as np
 import torch
 import jax
