@@ -42,6 +42,19 @@ def build_dataset(X_raw, seq_len=50, step=1):
     Y = torch.tensor(np.array(Ys), dtype=torch.float32)
     return X, Y
 
+def r2_score(y_true, y_pred):
+    ss_res = jnp.sum((y_true - y_pred)**2, axis=(1,2))
+    ss_tot = jnp.sum((y_true - jnp.mean(y_true, axis=(1,2), keepdims=True))**2, axis=(1,2))
+    return jnp.mean(1 - ss_res/ss_tot)
 
 
-
+# Split train / val / test
+def split_data(X, y, train_ratio=0.7, val_ratio=0.15):
+    N = X.shape[0]
+    n_train = int(N*train_ratio)
+    n_val = int(N*val_ratio)
+    return (
+        (X[:n_train], y[:n_train]),
+        (X[n_train:n_train+n_val], y[n_train:n_train+n_val]),
+        (X[n_train+n_val:], y[n_train+n_val:])
+    )
