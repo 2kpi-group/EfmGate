@@ -14,35 +14,26 @@ import optax
 class EfmLSTMPredictor(nn.Module):
     units: int = 16
     out_size: int = 1
-    signature_depth: int = 2
+    signature_depth: int = 3
     signature_input_size: int = 5
 
     @nn.compact
     def __call__(self, x):
-        h1 = EfmLSTM(self.units, self.signature_depth, self.signature_input_size, return_sequences=True)(x)
-        h2 = EfmLSTM(self.units, self.signature_depth, self.signature_input_size, return_sequences=True)(h1)
-        y_pred = nn.Dense(self.out_size)(h2)
-        return y_pred
+        h = EfmLSTM(self.units, self.signature_depth, self.signature_input_size)(x)
+        h = EfmLSTM(self.units, self.signature_depth, self.signature_input_size)(h)
+        return nn.Dense(self.out_size)(h)
 
-
-# Entraînement
-
+# ============================================
+# Training
+# ============================================
 def train_model(
-    x_train, y_train,
-    x_val, y_val,
-    epochs=1000,
-    lr_init=0.01,
-    patience_es=10,
-    min_delta=1e-5,
-    patience_lr=5,
-    lr_factor=0.25,
-    min_lr=2.5e-5
+    x_train, y_train, x_val, y_val, 
+    epochs=100, lr=0.01, batch_size=100, 
+    patience_es=10, min_delta=1e-5,
+    lr_reduce_patience=5, lr_factor=0.25, min_lr=2.5e-5
 ):
     model = EfmLSTMPredictor()
-    key = jax.random.PRNGKey(0)
-    params = model.init(key, x_train)
-
-    lr = lr_init
+    params = model.init(jax.random.PRNGKey(0), x_train)
     optimizer = optax.adam(lr)
     opt_state = optimizer.init(params)
 
@@ -52,102 +43,83 @@ def train_model(
 
     grad_fn = jax.value_and_grad(loss_fn)
 
-    best_val = np.inf
-    best_params = params
-    patience_es_cnt = 0
-    patience_lr_cnt = 0
+
+    best_val_loss = float("inf")
+    epochs_no_improve_es = 0
+    epochs_no_improve_lr = 0
+    current_lr = lr
+
+
+    num_batches = int(np.ceil(x_train.shape[0] / batch_size))
 
     for epoch in range(epochs):
-        train_loss, grads = grad_fn(params, x_train, y_train)
-        updates, opt_state = optimizer.update(grads, opt_state, params)
-        params = optax.apply_updates(params, updates)
-
-        val_loss = float(loss_fn(params, x_val, y_val))
-
-        #  EARLY STOPPING 
-        if val_loss < best_val - min_delta:
-            best_val = val_loss
-            best_params = params
-            patience_es_cnt = 0
-            patience_lr_cnt = 0
-        else:
-            patience_es_cnt += 1
-            patience_lr_cnt += 1
-
-        # LR REDUCTION
-        if patience_lr_cnt >= patience_lr and lr > min_lr:
-            lr = max(lr * lr_factor, min_lr)
-            optimizer = optax.adam(lr)
-            opt_state = optimizer.init(params)
-            patience_lr_cnt = 0
-            print(f"🔽 LR reduced to {lr:.6f}")
-
-        #  STOP 
-        if patience_es_cnt >= patience_es:
-            print(f" Early stopping at epoch {epoch}")
-            break
-
-        if (epoch+1) % 50 == 0:
-            print(
-                f"Epoch {epoch+1}/{epochs} | "
-                f"Train: {train_loss:.6f} | "
-                f"Val: {val_loss:.6f} | "
-                f"LR: {lr:.6f}"
-            )
-
-    return model, best_params
+        perm = np.random.permutation(x_train.shape[0])
+        x_train_shuff = x_train[perm]
+        y_train_shuff = y_train[perm]
+        
+        for i in range(num_batches):
+            start = i * batch_size
+            end = start + batch_size
+            x_batch = x_train_shuff[start:end]
+            y_batch = y_train_shuff[start:end]
+            loss, grads = grad_fn(params, x_batch, y_batch)
+            updates, opt_state = optimizer.update(grads, opt_state)
+            params = optax.apply_updates(params, updates)
+            val_loss = float(loss_fn(params, x_val, y_val))
+            if best_val_loss - val_loss > min_delta:
+                best_val_loss = val_loss
+                best_params = params
+                epochs_no_improve_es = 0
+                epochs_no_improve_lr = 0
+            else:
+                epochs_no_improve_es += 1
+                epochs_no_improve_lr += 1
+                
+            if epochs_no_improve_lr >= lr_reduce_patience:
+                current_lr = max(current_lr * lr_factor, min_lr)
+                optimizer = optax.adam(current_lr)
+                opt_state = optimizer.init(params)
+                epochs_no_improve_lr = 0
+                    
+            if (epoch + 1) % 5 == 0:
+                print(f"Epoch {epoch+1} | Val loss: {val_loss:.5f} | LR: {current_lr:.6f}")
+                 
+            if epochs_no_improve_es >= patience_es:
+                print(f"Early stopping triggered at epoch {epoch+1}")
+                params = best_params
+                break
 
 
-# SECTION 1 : 1-step ahead
+# ============================================
+# Entraînement
+# ============================================
 
-print("\n=== 1-step ahead ===")
-def build_dataset_1step(n_paths=50, T=500):
-    signals = []
-    for i in range(n_paths):
-        _, s = generate_ou_signal(T=T, seed=100+i)
-        signals.append(s)
-    signals = np.stack(signals)
-    X = signals[:, :-1]
-    y = signals[:, 1:]
-    X = torch.tensor(X, dtype=torch.float32).unsqueeze(2)
-    y = torch.tensor(y, dtype=torch.float32).unsqueeze(2)
-    return X, y
+# --- Initialisation des résultats ---
+n_aheads = [1]  # ou [1,6] si tu veux plusieurs horizons
+results_r2 = {n: [] for n in n_aheads}
+results_rmse = {n: [] for n in n_aheads}
 
-X1, y1 = build_dataset_1step()
-(X1_train, y1_train), (X1_val, y1_val), (X1_test, y1_test) = split_data(X1, y1)
+for n_ahead in n_aheads:
+    for run in range(5):
+        # Générer des données pour ce run
+        (X_train, y_train), (X_val, y_val), (X_test, y_test) = split_data(paths, targets)
+        X_train, y_train = jnp.array(X_train), jnp.array(y_train)
+        X_val, y_val = jnp.array(X_val), jnp.array(y_val)
+        X_test, y_test = jnp.array(X_test), jnp.array(y_test)
 
-x1_train, y1_train = to_jax(X1_train), to_jax(y1_train)
-x1_val, y1_val     = to_jax(X1_val), to_jax(y1_val)
-x1_test, y1_test   = to_jax(X1_test), to_jax(y1_test)
+        # Entraîner le modèle
+        model, params = train_model(X_train, y_train, X_val, y_val)
 
-model1, params1 = train_model(x1_train, y1_train, x1_val, y1_val)
-y1_pred = model1.apply(params1, x1_test)
-r2_mean1, r2_std1 = r2_mean_std(y1_test, y1_pred)
-print("R² 1-step → Mean:", r2_mean1, "Std:", r2_std1)
+        # Prédictions
+        y_pred = model.apply(params, X_test)
 
-# SECTION 2 : 9-step ahead
+        # Calcul R² et RMSE
+        r2 = r2_score(y_test, y_pred)
+        rmse = jnp.sqrt(jnp.mean((y_pred - y_test)**2))
 
-print("\n=== 9-step ahead ===")
-def build_dataset_9step(n_paths=50, T=500, step=9):
-    signals = []
-    for i in range(n_paths):
-        _, s = generate_ou_signal(T=T, seed=100+i)
-        signals.append(s)
-    signals = np.stack(signals)
-    X = signals[:, :-step]
-    y = signals[:, step:]
-    X = torch.tensor(X, dtype=torch.float32).unsqueeze(2)
-    y = torch.tensor(y, dtype=torch.float32).unsqueeze(2)
-    return X, y
+        # Stocker les résultats
+        results_r2[n_ahead].append(float(r2))
+        results_rmse[n_ahead].append(float(rmse))
 
-X9, y9 = build_dataset_9step()
-(X9_train, y9_train), (X9_val, y9_val), (X9_test, y9_test) = split_data(X9, y9)
+        print(f"Run {run+1}, n_ahead={n_ahead} | R²: {r2:.4f}, RMSE: {rmse:.4f}")
 
-x9_train, y9_train = to_jax(X9_train), to_jax(y9_train)
-x9_val, y9_val     = to_jax(X9_val), to_jax(y9_val)
-x9_test, y9_test   = to_jax(X9_test), to_jax(y9_test)
-
-model9, params9 = train_model(x9_train, y9_train, x9_val, y9_val)
-y9_pred = model9.apply(params9, x9_test)
-r2_mean9, r2_std9 = r2_mean_std(y9_test, y9_pred)
-print("R² 9-step → Mean:", r2_mean9, "Std:", r2_std9)
