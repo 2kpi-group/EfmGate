@@ -1,7 +1,7 @@
 # Imports & Seeds
 
 from EfmGate import EfmLSTM
-from data import generate_ou_signal, split_data, to_jax, r2_mean_std
+from data import generate_ou_signal, split_data, r2_score
 import numpy as np
 import torch
 import jax
@@ -9,6 +9,20 @@ import jax.numpy as jnp
 from flax import linen as nn
 from jax import lax
 import optax
+
+
+
+
+
+(X_train, y_train), (X_val, y_val), (X_test, y_test) = split_data(paths, targets)
+
+X_train, y_train = jnp.array(X_train), jnp.array(y_train)
+X_val, y_val     = jnp.array(X_val), jnp.array(y_val)
+X_test, y_test   = jnp.array(X_test), jnp.array(y_test)
+
+
+
+
 
 
 class EfmLSTMPredictor(nn.Module):
