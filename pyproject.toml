@@ -1,0 +1,21 @@
+[project]
+name = "efmgate"
+version = "0.1.0"
+description = "EfmGate: Fractional Memory Gating for RNNs"
+requires-python = ">=3.9"
+
+dependencies = [
+    "numpy>=1.22",
+    "torch>=1.13",
+    "jax>=0.4",
+    "flax>=0.7",
+    "optax",
+    "scipy",
+    "matplotlib",
+    "tqdm"
+]
+
+[tool.setuptools]
+packages = ["efmgate"]
+package-dir = {"" = "src"}
+
