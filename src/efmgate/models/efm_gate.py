@@ -1,6 +1,6 @@
 
 # Imports & Seeds
-from efmgate.data.dataset import generate_ou_signal, split_data, r2_score
+from efmgate import generate_ou_signal, split_data, r2_score
 
 import numpy as np
 import torch

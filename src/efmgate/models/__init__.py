@@ -1,8 +1,4 @@
-# Réexporter les classes principales du module efm_gate
-from .efm_gate import EfmLSTM, EfmLSTMPredictor
+from .dataset import generate_ou_signal, split_data, r2_score
 
-__all__ = [
-    "EfmLSTM",
-    "EfmLSTMPredictor"
-]
+__all__ = ["generate_ou_signal", "split_data", "r2_score"]
 
