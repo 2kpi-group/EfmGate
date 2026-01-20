@@ -1,7 +1,6 @@
 # Imports & Seeds
 
-from efmgate.models.efm_gate import EfmLSTM
-from efmgate.data.dataset import generate_ou_signal, split_data, r2_score
+from efmgate import *
 
 import numpy as np
 import torch
