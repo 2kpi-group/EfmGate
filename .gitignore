@@ -9,6 +9,5 @@ __pycache__/
 .ipynb_checkpoints/
 
 # Dataset / outputs (si tu en as)
-data/
 outputs/
 

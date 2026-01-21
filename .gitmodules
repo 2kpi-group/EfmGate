@@ -1,0 +1,3 @@
+[submodule "external/signature"]
+	path = external/signature
+	url = https://github.com/MrG1raffe/signature
