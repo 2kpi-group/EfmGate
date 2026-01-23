@@ -1,7 +1,6 @@
 # Imports & Seeds
 
-from efmgate import *
-
+from efmgate.data import build_dataset, split_data, r2_score
 import numpy as np
 import torch
 import jax
