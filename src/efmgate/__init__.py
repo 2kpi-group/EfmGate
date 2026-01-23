@@ -1,15 +1,10 @@
-# Nouveau contenu :
-from .data import generate_ou_signal, build_dataset, split_data, r2_score
-from .models.efm_gate import EfmLSTM, EfmLSTMPredictor
+from efmgate.models import EfmLSTM
+from efmgate.data import generate_ou_signal, split_data, r2_score
 
-# -----------------------------
-# Définition de ce qui sera accessible via 'from efmgate import *'
-# -----------------------------
 __all__ = [
-    'generate_ou_signal', 
-    'build_dataset', 
-    'split_data', 
-    'r2_score',
-    'EfmLSTM', 
-    'EfmLSTMPredictor'
+    "EfmLSTM",
+    "generate_ou_signal",
+    "split_data",
+    "r2_score",
 ]
+
