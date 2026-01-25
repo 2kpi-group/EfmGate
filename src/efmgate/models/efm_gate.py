@@ -37,29 +37,41 @@ class EfmLSTM(nn.Module):
         # ------------------------------------------------------------
         # Calcul des signatures + TIME NORMALIZATION (article)
         # ------------------------------------------------------------
-        sig_list = []
-        t_grid_sig = jnp.linspace(0., 1., T)  # temps normalisé [0,1]
+#        sig_list = []
+ #       t_grid_sig = jnp.linspace(0., 1., T)  # temps normalisé [0,1]
 
-        for b in range(B):
-            sig = ta.path_to_fm_signature(
-                path=path[b],
-                trunc=self.signature_depth,
-                t_grid=t_grid_sig,
-                lam=self.lam 
-            ).array  # (sig_dim, T)
+  #      for b in range(B):
+   #         sig = ta.path_to_fm_signature(
+    #            path=path[b],
+     #           trunc=self.signature_depth,
+      #          t_grid=t_grid_sig,
+       #         lam=self.lam 
+        #    ).array  # (sig_dim, T)
 
+
+      
             # Time normalization de l’article : S(0,t) / t
-            sig = sig.at[:, 1:].set(sig[:, 1:] / t_grid_sig[1:])
+#            sig = sig.at[:, 1:].set(sig[:, 1:] / t_grid_sig[1:])
+#
+#            sig_list.append(sig)
+#
+ #       signatures = jnp.stack(sig_list, axis=0)          # (B, sig_dim, T)
+  #      signatures = jnp.transpose(signatures, (0, 2, 1)) # (B, T, sig_dim)
+   #     sig_dim = signatures.shape[-1]
 
-            sig_list.append(sig)
+       
 
-        signatures = jnp.stack(sig_list, axis=0)          # (B, sig_dim, T)
-        signatures = jnp.transpose(signatures, (0, 2, 1)) # (B, T, sig_dim)
+        sig_fn = lambda p: ta.path_to_signature(p, trunc=self.signature_depth).array
+        signatures = jax.vmap(sig_fn)(path)
+        t_grid_sig = jnp.linspace(0., 1., T)
+        signatures = signatures.at[:, :, 1:].set(signatures[:, :, 1:] / t_grid_sig[1:])
+        signatures = signatures.transpose(0, 2, 1)  # (B, T, sig_dim)
         sig_dim = signatures.shape[-1]
 
-        # ------------------------------------------------------------
+
+
         # Paramètres LSTM
-        # ------------------------------------------------------------
+
         input_kernel = self.param(
             "input_kernel",
             nn.initializers.glorot_uniform(),
@@ -87,9 +99,9 @@ class EfmLSTM(nn.Module):
 
         x_proj_lstm = jnp.einsum("btd,du->btu", inputs, input_kernel)
 
-        # ------------------------------------------------------------
+
+
         # Scan LSTM
-        # ------------------------------------------------------------
         def step(carry, xs):
             x_t, sig_t = xs
             h_prev, c_prev = carry
