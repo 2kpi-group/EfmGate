@@ -29,11 +29,11 @@ class EfmLSTM(nn.Module):
         # ------------------------------------------------------------
         # Projection pour signature
         # ------------------------------------------------------------
-        x_proj = nn.Dense(self.signature_input_size, use_bias=False)(inputs)  # (B, T, D')
+       # x_proj = nn.Dense(self.signature_input_size, use_bias=False)(inputs)  # (B, T, D')
         t_grid = jnp.linspace(0., 1., T)[None, :, None]                        # (1, T, 1)
         t_grid = jnp.repeat(t_grid, B, axis=0)                                 # (B, T, 1)
-        path = jnp.concatenate([t_grid, x_proj], axis=-1)                      # (B, T, D'+1)
-
+       # path = jnp.concatenate([t_grid, x_proj], axis=-1)                      # (B, T, D'+1)
+        path = jnp.concatenate([t_grid, inputs ], axis =-1)
         # ------------------------------------------------------------
         # Calcul des signatures + TIME NORMALIZATION (article)
         # ------------------------------------------------------------
