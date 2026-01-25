@@ -3,4 +3,4 @@
 	url = https://github.com/anh-tong/signax.git
 [submodule "external/signature"]
 	path = external/signature
-	url = https://github.com/MrG1raffe/signature.git
+        url = https://github.com/2kpi-group/signature.git
