@@ -38,7 +38,7 @@ class EfmLSTM(nn.Module):
         # Calcul des signatures + TIME NORMALIZATION (article)
         # ------------------------------------------------------------
 #        sig_list = []
- #       t_grid_sig = jnp.linspace(0., 1., T)  # temps normalisé [0,1]
+         t_grid_sig = jnp.linspace(0., 1., T)  # temps normalisé [0,1]
 
   #      for b in range(B):
    #         sig = ta.path_to_fm_signature(
@@ -61,7 +61,7 @@ class EfmLSTM(nn.Module):
 
        
 
-        sig_fn = lambda p: ta.path_to_signature(p, trunc=self.signature_depth).array
+        sig_fn = lambda p: ta.path_to_fm_signature(p, trunc=self.signature_depth, t_grid_sig, self.lam ).array
         signatures = jax.vmap(sig_fn)(path)
         t_grid_sig = jnp.linspace(0., 1., T)
         signatures = signatures.at[:, :, 1:].set(signatures[:, :, 1:] / t_grid_sig[1:])
